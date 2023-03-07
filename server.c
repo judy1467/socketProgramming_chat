@@ -22,6 +22,11 @@ static int clnt_sock;
 char recv_data[100];
 char send_data[100];
 
+pthread_t th0;
+pthread_t th1;
+
+int tmp;
+
 int main(int argc, char* argv[]){
 
     if(argc != 2){
@@ -65,13 +70,11 @@ int main(int argc, char* argv[]){
         error_handling("accept error");
     }
 
-    char msg[] = "Hello this is test server!\n";
+    char msg[] = "Hello this is test server!\n[message's max size is 100bytes]\n";
     write(clnt_sock, msg, sizeof(msg));
-    printf("[message's max size is 100bytes]\n");
-    printf("check1\n");
+    printf("Hello this is test server!\n[message's max size is 100bytes]\n");
 
-    pthread_t th0;
-    pthread_t th1;
+
 
     pthread_create(&th0, NULL, recv_thread, NULL);
     pthread_create(&th1, NULL, send_thread, NULL);
@@ -81,8 +84,8 @@ int main(int argc, char* argv[]){
     pthread_join(th0, &result);
     pthread_join(th1, &result);
 
-    close(clnt_sock);
-    close(serv_sock);
+//    close(clnt_sock);
+//    close(serv_sock);
 
     return 0;
 }
@@ -95,23 +98,35 @@ void error_handling(char *message){
 
 void *recv_thread(){
     while(1){
-        memset(recv_data, 0 , sizeof(send_data));
-        if(recv(clnt_sock, recv_data, sizeof(recv_data), 0) != -1){
-            recv_data[strlen(recv_data)] = '\0';
+        memset(recv_data, 0 , sizeof(recv_data));
+        if((tmp=recv(clnt_sock, recv_data, sizeof(recv_data), 0)) == -1){
+            printf("disconnect!!\n");
+            return (int*)0;
+        }
+        else if(tmp > 0){
+            if(strcmp(recv_data, "quit") == 0){
+                break;
+            }
+            recv_data[tmp] = '\0';
             printf("%s",recv_data);
         }
-
     }
     close(clnt_sock);
+    close(serv_sock);
     return NULL;
 }
 
 void *send_thread(){
     while(1){
-        printf("input message: ");
+        memset(send_data, 0 , sizeof(send_data));
         fgets(send_data, sizeof(send_data), stdin);
+        if(strcmp(send_data, "quit") == 0){
+            break;
+        }
         send(clnt_sock, send_data, sizeof(send_data), 0);
+        while(getchar() != '\n');
     }
     close(clnt_sock);
+    close(serv_sock);
     return NULL;
 }
