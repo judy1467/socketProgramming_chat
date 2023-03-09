@@ -10,7 +10,7 @@ void error_handling(char *message);
 void *recv_thread();
 
 struct sockaddr_in serv_addr;
-
+socklen_t serv_addr_size;
 int clnt_sock;
 char recv_data[1024];
 char send_data[1024];
@@ -37,7 +37,9 @@ int main(int argc, char* argv[]) {
     serv_addr.sin_addr.s_addr = inet_addr(ip);
     serv_addr.sin_port = htons(port);
 
-    if(connect(clnt_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == -1)
+    serv_addr_size = sizeof(serv_addr);
+
+    if(connect(clnt_sock, (struct sockaddr *) &serv_addr, serv_addr_size) == -1)
         error_handling("connect error");
 
     pthread_create(&th0, NULL, recv_thread, NULL);
@@ -47,7 +49,11 @@ int main(int argc, char* argv[]) {
             break;
         fgets(send_data, sizeof(send_data), stdin);
         send(clnt_sock, send_data, sizeof(send_data), 0);
+        if(strcmp(send_data, "quit") == 10)
+            break;
     }
+
+    close(clnt_sock);
 
     return 0;
 }
@@ -61,17 +67,17 @@ void error_handling(char *message){
 void *recv_thread(){
     while(1){
         if(recv(clnt_sock, recv_data, sizeof(recv_data), 0) == -1){
-            printf("disconnect!!\n");
-            break;
+            printf("[disconnect!!]\n");
+            return NULL;
         }
         else{
             if(strcmp(recv_data, "quit") == 10){
+                printf("[disconnect!!]\n");
                 break;
             }
-            printf("%s",recv_data);
+            printf("\nserver[%s]: %s\n", inet_ntoa(serv_addr.sin_addr), recv_data);
         }
     }
     status_exit = 1;
-    close(clnt_sock);
     return NULL;
 }

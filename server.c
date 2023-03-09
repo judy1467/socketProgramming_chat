@@ -5,6 +5,7 @@
 #include "pthread.h"
 #include "netinet/in.h"
 #include "sys/socket.h"
+#include <arpa/inet.h>
 
 void error_handling(char *message);
 void *recv_thread();
@@ -14,9 +15,7 @@ struct sockaddr_in serv_addr, clnt_addr;
 
 // socklen_t 는 소켓 관련 매개 변수에 사용됨
 socklen_t clnt_addr_size;
-
-int serv_sock;
-int clnt_sock;
+int serv_sock, clnt_sock;
 char recv_data[1024];
 char send_data[1024];
 pthread_t th0;
@@ -58,9 +57,10 @@ int main(int argc, char* argv[]){
     if(clnt_sock == -1)
         error_handling("accept error");
 
-    char msg[] = "Hello this is test server!\n[message's max size is 100bytes]\n";
+    char msg[] = "Hello this is test chat server!\nIf you want to exit the chat, type [quit] on the screen.\n";
     write(clnt_sock, msg, sizeof(msg));
-    printf("Hello this is test server!\n[message's max size is 100bytes]\n");
+    printf("Hello this is test chat server!\n");
+    printf("If you want to exit the chat, type [quit] on the screen.\n");
 
     // recv쓰레드 생성
     pthread_create(&th0, NULL, recv_thread, NULL);
@@ -70,7 +70,12 @@ int main(int argc, char* argv[]){
             break;
         fgets(send_data, sizeof(send_data), stdin);
         send(clnt_sock, send_data, sizeof(send_data), 0);
+        if(strcmp(send_data, "quit") == 10)
+            break;
     }
+
+    close(clnt_sock);
+    close(serv_sock);
 
     return 0;
 }
@@ -85,18 +90,17 @@ void *recv_thread(){
     while(1){
         memset(recv_data, 0 , sizeof(recv_data));
         if(recv(clnt_sock, recv_data, sizeof(recv_data), 0) == -1){
-            printf("disconnect!!\n");
-            return (int*)0;
+            printf("[disconnect!!]\n");
+            return NULL;
         }
         else{
             if(strcmp(recv_data, "quit") == 10){
+                printf("[disconnect!!]\n");
                 break;
             }
-            printf("%s",recv_data);
+            printf("\nclient[%s]: %s\n", inet_ntoa(clnt_addr.sin_addr), recv_data);
         }
     }
     status_exit = 1;
-    close(clnt_sock);
-    close(serv_sock);
     return NULL;
 }
