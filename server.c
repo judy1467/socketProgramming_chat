@@ -11,6 +11,7 @@
 void error_handling(char *message);
 void *recv_thread();
 void *accept_thread();
+void test();
 
 struct sockaddr_in serv_addr;
 struct sockaddr_in clnt_addr_list[LIST_SIZE];
@@ -24,8 +25,10 @@ pthread_t th_list[LIST_SIZE];
 
 int status_exit = 0;
 int cnt_clnt = 0;
+int cnt_clnt2 = 1;
 
 int main(int argc, char* argv[]){
+    memset(clnt_addr_list, 0, sizeof(clnt_addr_list));
 
     if(argc != 2)
         error_handling("usage: ./filename [port]");
@@ -41,7 +44,7 @@ int main(int argc, char* argv[]){
     serv_addr.sin_addr.s_addr=htonl(INADDR_ANY);
     serv_addr.sin_port=htons(atoi(argv[1]));
 
-    if(bind(serv_sock, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) == -1)
+    if(bind(serv_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == -1)
         error_handling("bind error");
 
     if(listen(serv_sock, 5) == -1)
@@ -56,6 +59,9 @@ int main(int argc, char* argv[]){
         if(status_exit)
             break;
         fgets(send_data, sizeof(send_data), stdin);
+        if(strcmp(send_data, "test") == 10){
+            test();
+        }
         for(int i = 0 ; i < cnt_clnt +1; i++){
             send(clnt_sock_list[i], send_data, sizeof(send_data), 0);
         }
@@ -80,6 +86,7 @@ void error_handling(char *message){
 void *recv_thread(){
     const int index = cnt_clnt;
     cnt_clnt += 1;
+    cnt_clnt2 += 1;
     while(1){
         if(recv(clnt_sock_list[index], recv_data, sizeof(recv_data), 0) != -1){
             printf("\nclient[%s:%d, index: %d]: %s\n", inet_ntoa(clnt_addr_list[index].sin_addr), clnt_addr_list[index].sin_port, index, recv_data);
@@ -101,13 +108,35 @@ void *recv_thread(){
 
 void *accept_thread(){
     while(1){
-        if((clnt_sock_list[cnt_clnt] = accept(serv_sock, (struct sockaddr*)&clnt_addr_list[cnt_clnt], &clnt_addr_size_list[cnt_clnt])) != -1){
+        if((clnt_sock_list[cnt_clnt] = accept(serv_sock, (struct sockaddr *)&clnt_addr_list[cnt_clnt], &clnt_addr_size_list[cnt_clnt])) != -1){
             if(status_exit)
                 break;
+
+            clnt_addr_size_list[cnt_clnt2] = (int)sizeof(clnt_addr_list[cnt_clnt]);
+
             char msg[] = "Hello this is test chat server!\nIf you want to exit the chat, type [quit] on the screen.\n";
             write(clnt_sock_list[cnt_clnt], msg, sizeof(msg));
+
+            printf("[new client enter], cnt_clnt: %d\n", cnt_clnt);
+
             pthread_create(&th_list[cnt_clnt], NULL, &recv_thread, NULL);
         }
     }
     return NULL;
+}
+
+void test(){ // for check client information
+    printf("\n---------\n[clnt_addr_list]\n");
+    for(int i = 0 ; i < LIST_SIZE ; i++){
+        printf("%s:%d, family: %d, len: %d\n", inet_ntoa(clnt_addr_list[i].sin_addr), clnt_addr_list[i].sin_port, clnt_addr_list[i].sin_family, clnt_addr_list[i].sin_len);
+    }
+    printf("---------\n[clnt_addr_size_list]\n");
+    for(int i = 0 ; i < LIST_SIZE ; i++){
+        printf("%d: %d\n", i, clnt_addr_size_list[i]);
+    }
+    printf("---------\n[clnt_sock_list]\n");
+    for(int i = 0 ; i < LIST_SIZE ; i++){
+        printf("%d: %d\n", i, clnt_sock_list[i]);
+    }
+    printf("---------\n\n");
 }
