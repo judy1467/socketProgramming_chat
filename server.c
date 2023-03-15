@@ -115,9 +115,7 @@ void *recv_thread(const int *arg){
 }
 
 void *accept_thread(){
-    while(1){
-        if(status_exit)
-                break;
+    while(!status_exit){
         clnt_addr_size_list[cnt_clnt] = (int)sizeof(clnt_addr_list[cnt_clnt]);
         if((clnt_sock_list[cnt_clnt] = accept(serv_sock, (struct sockaddr *) &clnt_addr_list[cnt_clnt], &clnt_addr_size_list[cnt_clnt])) != -1){
 
