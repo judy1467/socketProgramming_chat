@@ -158,6 +158,6 @@ void convert(int index){
     sprintf(temp, "%d", clnt_addr_list[index].sin_port);
 
     strcat(convert_recv_data, temp);
-    strcat(convert_recv_data, "] :");
+    strcat(convert_recv_data, "]: ");
     strcat(convert_recv_data, recv_data);
 }
