@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
         send(clnt_sock, send_data, sizeof(send_data), 0);
         if(strcmp(send_data, "quit") == 10)
             break;
+        memset(send_data, 0, sizeof(send_data));
     }
 
     close(clnt_sock);
@@ -75,7 +76,10 @@ void *recv_thread(){
                 printf("[disconnect!!]\n");
                 break;
             }
-            printf("\nserver[%s]: %s\n", inet_ntoa(serv_addr.sin_addr), recv_data);
+//            printf("\nserver[%s]: %s\n", inet_ntoa(serv_addr.sin_addr), recv_data);
+            printf("%s", recv_data);
+
+            memset(recv_data, 0, sizeof(recv_data));
         }
     }
     status_exit = 1;

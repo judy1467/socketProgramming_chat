@@ -12,6 +12,7 @@ void error_handling(char *message);
 void *recv_thread(const int *arg);
 void *accept_thread();
 void test();
+void convert(int index);
 
 struct sockaddr_in serv_addr;
 struct sockaddr_in clnt_addr_list[LIST_SIZE];
@@ -20,6 +21,7 @@ int serv_sock;
 int clnt_sock_list[LIST_SIZE];
 char recv_data[1024];
 char send_data[1024];
+char convert_recv_data[1024];
 pthread_t th_accept;
 pthread_t th_list[LIST_SIZE];
 
@@ -53,18 +55,17 @@ int main(int argc, char* argv[]){
     printf("Hello this is test chat server!\n");
     printf("If you want to exit the chat, type [quit] on the screen.\n");
 
-    while(1){ // send to all connected client
-        if(status_exit)
-            break;
+    while(!status_exit){ // send to all connected client
         fgets(send_data, sizeof(send_data), stdin);
         if(strcmp(send_data, "test") == 10){
             test();
+            continue;
         }
-        for(int i = 0 ; i < cnt_clnt ; i++){
-            send(clnt_sock_list[i], send_data, sizeof(send_data), 0);
-        }
-        if(strcmp(send_data, "quit") == 10)
+        else if(strcmp(send_data, "quit") == 10)
             break;
+        for(int i = 0 ; i < cnt_clnt ; i++)
+            send(clnt_sock_list[i], send_data, sizeof(send_data), 0);
+        memset(send_data, 0, sizeof(send_data));
     }
 
     for(int i = 0 ; i < cnt_clnt ; i++){
@@ -87,6 +88,16 @@ void *recv_thread(const int *arg){
     while(1){
         if(recv(clnt_sock_list[index], recv_data, sizeof(recv_data), 0) != -1){
             printf("\nclient[%s:%d, index: %d]: %s\n", inet_ntoa(clnt_addr_list[index].sin_addr), clnt_addr_list[index].sin_port, index, recv_data);
+
+            convert(index);
+            for(int i = 0 ; i < cnt_clnt ; i++){
+                if(i != index)
+                    send(clnt_sock_list[i], convert_recv_data, sizeof(convert_recv_data), 0);
+            }
+
+            memset(convert_recv_data, 0, sizeof(convert_recv_data));
+            memset(recv_data, 0, sizeof(recv_data));
+
             if(strcmp(recv_data, "quit") == 10){
                 if(cnt_clnt > 1){
                     char msg[] = "quit\n";
@@ -113,7 +124,7 @@ void *accept_thread(){
             char msg[] = "Hello this is test chat server!\nIf you want to exit the chat, type [quit] on the screen.\n";
             write(clnt_sock_list[cnt_clnt], msg, sizeof(msg));
 
-            printf("[new client enter], cnt_clnt: %d\n", cnt_clnt);
+            printf("[new client enter], cnt_clnt: %d\n", cnt_clnt+1);
 
             pthread_create(&th_list[cnt_clnt], NULL, (void *(*)(void *)) &recv_thread, &cnt_clnt);
             while(!status_thread_done){}
@@ -138,4 +149,17 @@ void test(){ // for check client information
         printf("%d: %d\n", i, clnt_sock_list[i]);
     }
     printf("---------\n\n");
+}
+
+void convert(int index){
+    strcat(convert_recv_data, "[");
+    strcat(convert_recv_data, inet_ntoa(clnt_addr_list[index].sin_addr));
+    strcat(convert_recv_data, ":");
+
+    char temp[6];
+    sprintf(temp, "%d", clnt_addr_list[index].sin_port);
+
+    strcat(convert_recv_data, temp);
+    strcat(convert_recv_data, "] :");
+    strcat(convert_recv_data, recv_data);
 }
