@@ -20,8 +20,8 @@ int status_exit = 0;
 
 int main(int argc, char* argv[]) {
 
-    if(argc != 3)
-        error_handling("usage: ./filename [ip] [port]");
+//    if(argc != 3)
+//        error_handling("usage: ./filename [ip] [port]");
 
     // 소켓 생성&설정
     clnt_sock = socket(PF_INET,SOCK_STREAM,0);
@@ -29,8 +29,10 @@ int main(int argc, char* argv[]) {
         error_handling("socket error");
 
     // 인자를 변수에 할당
-    char *ip = argv[1];
-    in_port_t port = atoi(argv[2]);
+//    char *ip = argv[1];
+    char *ip = "127.0.0.1";
+//    in_port_t port = atoi(argv[2]);
+    in_port_t port = 1467;
 
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
